@@ -350,3 +350,30 @@ def block_diagonal_precon_alpha_beta(dirichl_space, neumann_space, ep_in, ep_ex,
     precond = LinearOperator(matvec=solve, dtype='float64', shape=block_mat_precond.shape)
     
     return precond
+
+
+def diagonal_precon_juffer(solute):
+    from scipy.sparse import diags, bmat
+    from scipy.sparse.linalg import aslinearoperator
+
+    block1 = solute.matrices['A'][0, 0]
+    block2 = solute.matrices['A'][0, 1]
+    block3 = solute.matrices['A'][1, 0]
+    block4 = solute.matrices['A'][1, 1]
+
+    diag11 = block1._op1._alpha * block1._op1._op.weak_form().to_sparse().diagonal() + \
+             block1._op2.descriptor.singular_part.weak_form().to_sparse().diagonal()
+    diag12 = block2._alpha * block2._op.descriptor.singular_part.weak_form().to_sparse().diagonal()
+    diag21 = block3._op1._alpha * block3._op1._op.weak_form().to_sparse().diagonal() +\
+             block3._op2._alpha * block3._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal()
+    diag22 = block4._alpha * block4._op.descriptor.singular_part.weak_form().to_sparse().diagonal()
+
+    d_aux = 1 / (diag22 - diag21 * diag12 / diag11)
+    diag11_inv = 1 / diag11 + 1 / diag11 * diag12 * d_aux * diag21 / diag11
+    diag12_inv = -1 / diag11 * diag12 * d_aux
+    diag21_inv = -d_aux * diag21 / diag11
+    diag22_inv = d_aux
+
+    block_mat_precond = bmat([[diags(diag11_inv), diags(diag12_inv)], [diags(diag21_inv), diags(diag22_inv)]]).tocsr()
+
+    return aslinearoperator(block_mat_precond)
