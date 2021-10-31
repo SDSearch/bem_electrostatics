@@ -370,6 +370,7 @@ def diagonal_precon_juffer(solute):
     diag11_inv = 1 / diag11
     diag22_inv = 1 / diag22
 
-    block_mat_precond = bmat([[diags(diag11_inv)], [diags(diag22_inv)]]).tocsr()
+    block_mat_precond = diags(np.concatenate((diag11_inv, diag22_inv))).tocsr()
+    #block_mat_precond = bmat([[diags(diag11_inv)], [diags(diag22_inv)]]).tocsr()
 
     return aslinearoperator(block_mat_precond)
