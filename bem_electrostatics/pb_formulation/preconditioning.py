@@ -374,3 +374,27 @@ def diagonal_precon_juffer(solute):
     #block_mat_precond = bmat([[diags(diag11_inv)], [diags(diag22_inv)]]).tocsr()
 
     return aslinearoperator(block_mat_precond)
+
+
+def diagonal_precon_lu(solute):
+    from scipy.sparse import diags, bmat
+    from scipy.sparse.linalg import aslinearoperator
+
+    block1 = solute.matrices['A'][0, 0]
+    block4 = solute.matrices['A'][1, 1]
+
+    diag11 = (block1._op1._op1._alpha*block1._op1._op1._op.weak_form().to_sparse().diagonal())\
+             +(block1._op1._op2._alpha*block1._op1._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())\
+             +(block1._op2._alpha*block1._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())
+
+    diag22 = (block4._op1._op1._alpha*block4._op1._op1._op.weak_form().to_sparse().diagonal())\
+             +(block4._op1._op2._alpha*block4._op1._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())\
+             +(block4._op2._alpha*block4._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())
+
+    diag11_inv = 1 / diag11
+    diag22_inv = 1 / diag22
+
+    block_mat_precond = diags(np.concatenate((diag11_inv, diag22_inv))).tocsr()
+    #block_mat_precond = bmat([[diags(diag11_inv)], [diags(diag22_inv)]]).tocsr()
+
+    return aslinearoperator(block_mat_precond)

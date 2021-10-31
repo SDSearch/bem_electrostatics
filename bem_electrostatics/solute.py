@@ -383,6 +383,11 @@ class Solute:
 
                 self.matrices["A_final"] = self.matrices["A"]
                 self.rhs["rhs_final"] = [self.rhs["rhs_1"], self.rhs["rhs_2"]]
+            elif self.pb_formulation_preconditioning_type == "diagonal_lu":
+                self.matrices["preconditioning_matrix"] = pb_formulation.preconditioning.diagonal_precon_lu(self)
+
+                self.matrices["A_final"] = self.matrices["A"]
+                self.rhs["rhs_final"] = [self.rhs["rhs_1"], self.rhs["rhs_2"]]
             elif self.pb_formulation_preconditioning_type == "juffer_scaled_mass":
                 self.matrices["preconditioning_matrix"] = pb_formulation.preconditioning.juffer_scaled_mass(self.dirichl_space,
                                                                                                             self.ep_in,
@@ -470,7 +475,8 @@ class Solute:
         gmres_start_time = time.time()
         if self.pb_formulation_preconditioning and (self.pb_formulation_preconditioning_type == "block_diagonal" or
                 self.pb_formulation_preconditioning_type == "block_diagonal_test" or
-                self.pb_formulation_preconditioning_type == "diagonal_juffer"):
+                self.pb_formulation_preconditioning_type == "diagonal_juffer" or
+                self.pb_formulation_preconditioning_type == "diagonal_lu"):
             x, info, it_count = utils.solver(self.matrices["A_discrete"],
                                              self.rhs["rhs_discrete"],
                                              self.gmres_tolerance,
