@@ -267,49 +267,49 @@ def block_diagonal_precon_direct_external(dirichl_space, neumann_space, ep_in, e
     return aslinearoperator(block_mat_precond)
 
 
-def block_diagonal_precon_juffer(dirichl_space, neumann_space, ep_in, ep_ex, kappa):
-    from scipy.sparse import diags, bmat
-    from scipy.sparse.linalg import factorized, LinearOperator
-    from bempp.api.operators.boundary import sparse, laplace, modified_helmholtz
-
-    phi_id = sparse.identity(dirichl_space, dirichl_space, dirichl_space).weak_form().A.diagonal()
-    dph_id = sparse.identity(neumann_space, neumann_space, neumann_space).weak_form().A.diagonal()
-    ep = ep_ex/ep_in
-
-    dF = laplace.double_layer(dirichl_space, dirichl_space, dirichl_space,
-                              assembler="only_diagonal_part").weak_form().A
-    dP = modified_helmholtz.double_layer(dirichl_space, dirichl_space, dirichl_space, kappa,
-                                         assembler="only_diagonal_part").weak_form().A
-    L1 = (ep*dP) - dF
-
-    F = laplace.single_layer(neumann_space, dirichl_space, dirichl_space,
-                             assembler="only_diagonal_part").weak_form().A
-    P = modified_helmholtz.single_layer(neumann_space, dirichl_space, dirichl_space, kappa,
-                                        assembler="only_diagonal_part").weak_form().A
-    L2 = F - P
-
-    ddF = laplace.hypersingular(dirichl_space, neumann_space, neumann_space,
-                                assembler="only_diagonal_part").weak_form().A
-    ddP = modified_helmholtz.hypersingular(dirichl_space, neumann_space, neumann_space, kappa,
-                                           assembler="only_diagonal_part").weak_form().A
-    L3 = ddP - ddF
-
-    dF0 = laplace.adjoint_double_layer(neumann_space, neumann_space, neumann_space,
-                                       assembler="only_diagonal_part").weak_form().A
-    dP0 = modified_helmholtz.adjoint_double_layer(neumann_space, neumann_space, neumann_space, kappa,
-                                                  assembler="only_diagonal_part").weak_form().A
-    L4 = dF0 - ((1.0/ep)*dP0)
-
-    diag11 = diags((0.5*(1.0 + ep)*phi_id) - L1)
-    diag12 = diags((-1.0)*L2)
-    diag21 = diags(L3)
-    diag22 = diags((0.5*(1.0 + (1.0/ep))*dph_id) - L4)
-    block_mat_precond = bmat([[diag11, diag12], [diag21, diag22]]).tocsr()  # csr_matrix
-
-    solve = factorized(block_mat_precond)  # a callable for solving a sparse linear system (treat it as an inverse)
-    precond = LinearOperator(matvec=solve, dtype='float64', shape=block_mat_precond.shape)
-    
-    return precond
+# def block_diagonal_precon_juffer(dirichl_space, neumann_space, ep_in, ep_ex, kappa):
+#     from scipy.sparse import diags, bmat
+#     from scipy.sparse.linalg import factorized, LinearOperator
+#     from bempp.api.operators.boundary import sparse, laplace, modified_helmholtz
+#
+#     phi_id = sparse.identity(dirichl_space, dirichl_space, dirichl_space).weak_form().A.diagonal()
+#     dph_id = sparse.identity(neumann_space, neumann_space, neumann_space).weak_form().A.diagonal()
+#     ep = ep_ex/ep_in
+#
+#     dF = laplace.double_layer(dirichl_space, dirichl_space, dirichl_space,
+#                               assembler="only_diagonal_part").weak_form().A
+#     dP = modified_helmholtz.double_layer(dirichl_space, dirichl_space, dirichl_space, kappa,
+#                                          assembler="only_diagonal_part").weak_form().A
+#     L1 = (ep*dP) - dF
+#
+#     F = laplace.single_layer(neumann_space, dirichl_space, dirichl_space,
+#                              assembler="only_diagonal_part").weak_form().A
+#     P = modified_helmholtz.single_layer(neumann_space, dirichl_space, dirichl_space, kappa,
+#                                         assembler="only_diagonal_part").weak_form().A
+#     L2 = F - P
+#
+#     ddF = laplace.hypersingular(dirichl_space, neumann_space, neumann_space,
+#                                 assembler="only_diagonal_part").weak_form().A
+#     ddP = modified_helmholtz.hypersingular(dirichl_space, neumann_space, neumann_space, kappa,
+#                                            assembler="only_diagonal_part").weak_form().A
+#     L3 = ddP - ddF
+#
+#     dF0 = laplace.adjoint_double_layer(neumann_space, neumann_space, neumann_space,
+#                                        assembler="only_diagonal_part").weak_form().A
+#     dP0 = modified_helmholtz.adjoint_double_layer(neumann_space, neumann_space, neumann_space, kappa,
+#                                                   assembler="only_diagonal_part").weak_form().A
+#     L4 = dF0 - ((1.0/ep)*dP0)
+#
+#     diag11 = diags((0.5*(1.0 + ep)*phi_id) - L1)
+#     diag12 = diags((-1.0)*L2)
+#     diag21 = diags(L3)
+#     diag22 = diags((0.5*(1.0 + (1.0/ep))*dph_id) - L4)
+#     block_mat_precond = bmat([[diag11, diag12], [diag21, diag22]]).tocsr()  # csr_matrix
+#
+#     solve = factorized(block_mat_precond)  # a callable for solving a sparse linear system (treat it as an inverse)
+#     precond = LinearOperator(matvec=solve, dtype='float64', shape=block_mat_precond.shape)
+#
+#     return precond
 
 
 def block_diagonal_precon_alpha_beta(dirichl_space, neumann_space, ep_in, ep_ex, kappa, alpha, beta):
@@ -396,5 +396,75 @@ def diagonal_precon_lu(solute):
 
     block_mat_precond = diags(np.concatenate((diag11_inv, diag22_inv))).tocsr()
     #block_mat_precond = bmat([[diags(diag11_inv)], [diags(diag22_inv)]]).tocsr()
+
+    return aslinearoperator(block_mat_precond)
+
+
+def block_diagonal_precon_juffer(solute):
+    from scipy.sparse import diags, bmat
+    from scipy.sparse.linalg import aslinearoperator
+
+    block1 = solute.matrices['A'][0, 0]
+    block2 = solute.matrices['A'][0, 1]
+    block3 = solute.matrices['A'][1, 0]
+    block4 = solute.matrices['A'][1, 1]
+
+    diag11 = (block1._op1._alpha*block1._op1._op.weak_form().to_sparse().diagonal())\
+             +(block1._op2._alpha*((block1._op2._op._op1._alpha*block1._op2._op._op1._op.descriptor.singular_part.weak_form().to_sparse().diagonal())
+             +(block1._op2._op._op2._alpha*block1._op2._op._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())))
+
+    diag12 = block2._alpha\
+             *(block2._op._op1.descriptor.singular_part.weak_form().to_sparse().diagonal()
+             +(block2._op._op2._alpha*block2._op._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal()))
+
+    diag21 = block3._op1.descriptor.singular_part.weak_form().to_sparse().diagonal()\
+             +(block3._op2._alpha*block3._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())
+
+    diag22 = (block4._op1._alpha*block4._op1._op.weak_form().to_sparse().diagonal())\
+             +(block4._op2._alpha*((block4._op2._op._op1.descriptor.singular_part.weak_form().to_sparse().diagonal())
+             +(block4._op2._op._op2._alpha*(block4._op2._op._op2._op._alpha*block4._op2._op._op2._op._op.descriptor.singular_part.weak_form().to_sparse().diagonal()))))
+
+    d_aux = 1 / (diag22 - diag21 * diag12 / diag11)
+    diag11_inv = 1 / diag11 + 1 / diag11 * diag12 * d_aux * diag21 / diag11
+    diag12_inv = -1 / diag11 * diag12 * d_aux
+    diag21_inv = -d_aux * diag21 / diag11
+    diag22_inv = d_aux
+
+    block_mat_precond = bmat([[diags(diag11_inv), diags(diag12_inv)], [diags(diag21_inv), diags(diag22_inv)]]).tocsr()
+
+    return aslinearoperator(block_mat_precond)
+
+
+def block_diagonal_precon_lu(solute):
+    from scipy.sparse import diags, bmat
+    from scipy.sparse.linalg import aslinearoperator
+
+    block1 = solute.matrices['A'][0, 0]
+    block2 = solute.matrices['A'][0, 1]
+    block3 = solute.matrices['A'][1, 0]
+    block4 = solute.matrices['A'][1, 1]
+
+    diag11 = (block1._op1._op1._alpha*block1._op1._op1._op.weak_form().to_sparse().diagonal())\
+             +(block1._op1._op2._alpha*block1._op1._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())\
+             +(block1._op2._alpha*block1._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())
+
+    diag12 = block2._op1.descriptor.singular_part.weak_form().to_sparse().diagonal()\
+             +(block2._op2._alpha*block2._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())
+
+    diag21 = (block3._op1._alpha*block3._op1._op.descriptor.singular_part.weak_form().to_sparse().diagonal())\
+             +(block3._op2._alpha
+             *(block3._op2._op._alpha*block3._op2._op._op.descriptor.singular_part.weak_form().to_sparse().diagonal()))
+
+    diag22 = (block4._op1._op1._alpha*block4._op1._op1._op.weak_form().to_sparse().diagonal())\
+             +(block4._op1._op2._alpha*block4._op1._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())\
+             +(block4._op2._alpha*block4._op2._op.descriptor.singular_part.weak_form().to_sparse().diagonal())
+
+    d_aux = 1 / (diag22 - diag21 * diag12 / diag11)
+    diag11_inv = 1 / diag11 + 1 / diag11 * diag12 * d_aux * diag21 / diag11
+    diag12_inv = -1 / diag11 * diag12 * d_aux
+    diag21_inv = -d_aux * diag21 / diag11
+    diag22_inv = d_aux
+
+    block_mat_precond = bmat([[diags(diag11_inv), diags(diag12_inv)], [diags(diag21_inv), diags(diag22_inv)]]).tocsr()
 
     return aslinearoperator(block_mat_precond)
